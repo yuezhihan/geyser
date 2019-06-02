@@ -1,7 +1,15 @@
+import os
+import sys
 from setuptools import setup
+
 def _read(file):
     with open(file, 'rb') as fp:
         return fp.read()
+
+if sys.argv[-1] == 'publish':
+    os.system("python setup.py sdist")
+    os.system("twine upload dist/*")
+    sys.exit()
 
 setup(name='geyser',
       version='0.1.0.dev1',
