@@ -11,8 +11,10 @@ setup(name='geyser',
       author='Zhihan Yue',
       author_email='zhihan.yue@foxmail.com',
       url='https://github.com/yuezhihan/geyser',
-      license='MIT',
       python_requires=">=2.7",
       install_requires=["torch"],
       packages=["geyser"],
+      classifiers=[
+          'License :: OSI Approved :: MIT License'
+      ]
       zip_safe=False)
