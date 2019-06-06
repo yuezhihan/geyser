@@ -1,44 +1,42 @@
+from collections.abc import Iterable
+
 def metric(*args, **kwargs):
-    if len(args) == 1 and callable(args[0]):
-        return Metric(args[0], **kwargs)
+    if len(args) >= 1 and callable(args[0]):
+        return MetricDef(*args, **kwargs)
     else:
-        def metric_(func):
-            return Metric(func, *args, **kwargs)
-        return metric_
-    
-class Metric:
-    def __init__(self, func, labels=[]):
-        self.func = func
-        self.name = func.__name__
-        assert(isinstance(labels, list) or isinstance(labels, tuple))            
-        self.labels = labels
+        def decor(func):
+            return MetricDef(func, *args, **kwargs)
+        return decor
+
+# mode = standard(output, target) universal(output, data)
+class MetricDef:
+    def __init__(self, func, name=None, labels=[], reduction='mean',
+                 calling_convention='standard'):
+        self._func = func
+        self._name = name if name is not None else func.__name__
+        assert isinstance(labels, Iterable), "labels should be a list, tuple or set"
+        self._labels = set(labels)
+        self._reduction = reduction
+        self._calling_convention = calling_convention
         
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self
-        if not hasattr(obj, '__metric_cache'):
-            obj.__metric_cache = {}
-        obj.__metric_cache.setdefault(self.name, self.func(obj))
-        return obj.__metric_cache[self.name]
-    
-    def __set__(self, obj, value):
-        raise AttributeError("can't set metric")
-    
-    def __delete__(self, obj):
-        raise AttributeError("can't delete metric")
+    def __call__(self, *args, **kwargs):
+        return self._func(*args, **kwargs)
 
+    @property
+    def name(self):
+        return self._name
     
-class Metrics:
-    def __init__(self):
-        subclass = self.__class__
-        self._attrs = [attr for attr in dir(subclass) if isinstance(getattr(subclass, attr), Metric)]
+    @property
+    def labels(self):
+        return self._labels
+    
+    @property
+    def reduction(self):
+        return self._reduction
+    
+    @property
+    def calling_convention(self):
+        return self._calling_convention
+    
 
-    def select(self, selected_label = None):
-        if selected_label is None:
-            return { attr : getattr(self, attr) for attr in self._attrs }
-        subclass = self.__class__
-        return { attr : getattr(self, attr) for attr in self._attrs if selected_label in getattr(subclass, attr).labels }
-    
-    def __repr__(self):
-        return str(self.select())
     
