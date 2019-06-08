@@ -1,7 +1,21 @@
-from enum import Enum
+# @Events.iteration_started
 
-EVENT = Enum('EVENT', ('ITERATION_STARTED', 'ITERATION_COMPLETED', 'EPOCH_STARTED', 'EPOCH_COMPLETED'))
+# 支持class注册和function注册两种
 
-# @EVENT.ITERATION_STARTED
+class Events:
+    @staticmethod
+    def iteration_started(func):
+        pass
 
+    @staticmethod
+    def iteration_completed(func):
+        pass
 
+    @staticmethod
+    def epoch_started(func):
+        pass
+
+    @staticmethod
+    def epoch_completed(func):
+        pass
+    

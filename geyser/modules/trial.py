@@ -1,5 +1,10 @@
-from collections.abc import Iterable
+import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+import random
+from collections.abc import Iterable
+from .utils import pack_arguments
+from collections import defaultdict
 
 class TrainStatus:
     def __init__(self):
@@ -18,17 +23,30 @@ class TrainStatus:
     def select_metrics(self):
         pass
 
-
 class Trial:
-    def __init__(self, model_func, metric_defs, train_loader,
-                 valid_loader = None, test_loader = None, data_format_func = Trial.default_format_data):
-        self.__model_func = model_func
-        assert isinstance(metric_defs, Iterable), "metric_defs should be a list or tuple"
-        self.__metric_defs = list(metric_defs)
+    def __init__(self, model, metrics_defs, train_loader,
+                 valid_loader = None, test_loader = None,
+                 data_transform_func = Trial.default_transform_data):
+        assert isinstance(model, nn.Module), "model should be a Module"
+        self.__model = model
+
+        assert isinstance(metrics_defs, Iterable), "metrics_defs should be a list or tuple"
+        self.__metrics_defs = list(metrics_defs)
+
+        self.__metric_name2def = {}
+        for metric_def in metrics_defs:
+            assert metric_def.name not in self.__metric_name2def, "the metric name should be unique"
+            self.__metric_name2def[metric_def.name] = metric_def
+        
+        self.__metric_label2defs = defaultdict(set)
+        for metric_def in metrics_defs:
+            for label in metric_def.labels:
+                self.__metric_label2defs[label].add(metric_def)
+
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.test_loader = test_loader
-        self.__format_data = data_format_func
+        self.__transform_data = data_transform_func
         self.__status = TrainStatus()
         self.stop()
     
@@ -61,37 +79,46 @@ class Trial:
         return self.__status
 
     @property
-    def metric_defs(self):
-        return self.__metric_defs
+    def metrics_defs(self):
+        return self.__metrics_defs
 
     @property
-    def format_data(self):
-        return self.__format_data
+    def transform_data(self):
+        return self.__transform_data
 
     @staticmethod
-    def default_format_data(data):
+    def default_transform_data(data):
         input, target = data
-        return input, target
+        return pack_arguments(input), pack_arguments(target)
 
     def stop(self):
         self.__stop = True
 
     def __cal_metrics(self, output, data):
         metrics = {}
-        for metric_def in self.__metric_defs:
+        for metric_def in self.__metrics_defs:
             name = metric_def.name
-            if metric_def.calling_convention == 'standard':
-                _, target = self.format_data(data)
-                metrics[name] = metric_def(output, target)
-            elif metric_def.calling_convention == 'universal':
-                metrics[name] = metric_def(output, data)
+            _, target = self.transform_data(data)
+            metrics[name] = metric_def(output, *target[0], **target[1])
         return metrics
 
     def evaluate(self, data_loader):
-        for data in data_loader:
-            output = self.__model_func(data)
-            metrics = self.__cal_metrics(output, data)
-            # TODO - reduce
+        self.__model.eval()
+        metrics_series = defaultdict(lambda: None)
+        index = 0
+        with torch.no_grad():
+            for data in data_loader:
+                output = self.__model(data)
+                metrics = self.__cal_metrics(output, data)
+                for name in metrics:
+                    self.__metric_name2def[name].reduction
+
+                    self.__metric_reduce(self.__metric_name2def[name].reduction,
+                                         metrics[name],
+                                         metrics_accumulator[name],
+                                         index)
+                index += 1
+        self.__model.train()
         return metrics
 
     def run(self, num_epoch, optimizer, callbacks):
@@ -114,8 +141,7 @@ class Trial:
                 self.min_loss = valid_metrics.loss()
     
     def test(self):
-        X, Y = self.dataset_valid.pack(*self.dataset_valid[:])
-        return self.model_exec.test(X, Y)
+        return self.evaluate(self.test_loader)
     
     # def reset_logs(self):
     #     self.epoch = 0
