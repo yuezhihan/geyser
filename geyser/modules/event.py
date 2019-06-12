@@ -4,18 +4,61 @@
 
 class Events:
     @staticmethod
-    def iteration_started(func):
+    def before_train(func):
         pass
 
     @staticmethod
-    def iteration_completed(func):
+    def after_train(func):
         pass
 
     @staticmethod
-    def epoch_started(func):
+    def before_epoch(func):
         pass
 
     @staticmethod
-    def epoch_completed(func):
+    def after_epoch(func):
         pass
     
+    @staticmethod
+    def before_iterate(func):
+        pass
+
+    @staticmethod
+    def after_iterate(func):
+        pass
+
+    @staticmethod
+    def before_forward(func):
+        pass
+
+    @staticmethod
+    def after_forward(func):
+        pass
+
+    @staticmethod
+    def before_backward(func):
+        pass
+
+    @staticmethod
+    def after_backward(func):
+        pass
+
+    @staticmethod
+    def before_validate(func):
+        pass
+
+    @staticmethod
+    def after_validate(func):
+        pass
+
+    @staticmethod
+    def before_stop(func):
+        pass
+
+    @staticmethod
+    def load(func):
+        pass
+
+    @staticmethod
+    def save(func):
+        pass

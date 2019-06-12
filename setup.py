@@ -1,6 +1,7 @@
 import os
 import sys
 from setuptools import setup
+from .geyser.VERSION import VERSION
 
 def _read(file):
     with open(file, 'rb') as fp:
@@ -12,8 +13,9 @@ if sys.argv[-1] == 'publish':
     os.system("twine upload dist/*")
     sys.exit()
 
+# TODO: rename to firebolt
 setup(name='geyser',
-      version='0.1.0.dev2',
+      version=VERSION,
       description='geyser',
       long_description=_read('README.md').decode('utf-8'),
       long_description_content_type='text/markdown',
